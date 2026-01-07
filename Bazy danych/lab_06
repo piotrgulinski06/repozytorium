@@ -1,0 +1,143 @@
+#SQL. Funkcje agregujące, grupowanie, łączenie tabel
+#zadanie 1
+#Wyświetl średnią pensję wszystkich pracowników.
+
+SELECT AVG(pensja) AS srednia_pensja
+FROM EMPLOYEE;
+
+#Wyświetl średnią pensję oraz liczbę pracowników dla każdego stanowiska (JOB_POSITION_ID).
+
+SELECT 
+JOB_POSITION_ID
+AVG(pensja) AS srednia_pensja,
+COUNT(*) AS liczba_pracownikow
+FROM EMPLOYEE
+GROUP BY JOB_POSITION_ID
+
+#Wyświetl średni wiek dla każdego departamentu (DEPARTMENT_ID), do którego należy pracownik.
+
+SELECT 
+departament_id,
+AVG(YEAR(CURRENT_DATE) - YEAR(data_urodzenia)) AS sredni_wiek
+FROM EMPLOYEE
+GROUP BY departament_id;
+
+#zadanie 2
+#Dla każdego departamentu (DEPARTMENT_ID) wyświetl łączną pensję jego pracowników. Dane posortuj malejąco.
+
+SELECT 
+departament_id,
+SUM(pensja) AS laczna_pensja
+FROM EMPLOYEE
+GROUP BY departament_id
+ORDER BY laczna_pensja DESC;
+
+#Dla każdego stanowiska pracy pracownika wyświetl średnią pensję, jeśli liczba pracowników na danym stanowisku jest ≥ 3 oraz średnia jest > 3000 PLN.
+
+SELECT 
+JOB_POSITION_ID
+AVG(pensja) AS srednia_pensja,
+COUNT(*) AS liczba_pracownikow
+FROM EMPLOYEE
+GROUP BY JOB_POSITION_ID
+HAVING COUNT(*) >= 3
+AND AVG(pensja) > 3000;
+
+#Wyświetl, ile jest różnych pensji dla każdego departamentu,jeśli minimalna liczba pracowników departamentu jest > 4.Dane posortuj rosnąco według ilości różnych pensji.
+
+SELECT 
+DEPARTMENT_ID,
+COUNT(DISTINCT pensja) AS distinct_salary_count,
+COUNT(*) AS employee_count
+FROM EMPLOYEE
+GROUP BY DEPARTMENT_ID
+HAVING COUNT(*) > 4
+ORDER BY distinct_salary_count ASC;
+
+#zadanie 3
+#Skopiuj tabele DEPARTMENT i JOB_POSITION z bazy company_2025 do swojej bazy danych.
+
+CREATE TABLE DEPARTMENT AS
+SELECT * FROM company_2025.DEPARTMENT;
+
+CREATE TABLE JOB_POSITION AS
+SELECT * FROM company_2025.JOB_POSITION;
+
+#sposób z tablicą
+
+select * from
+EMPLOYEE E
+INNER JOIN DEPARTMENT D on E.DEPARTMENT_ID=D.DEPARTMENT_ID;
+#lub
+select * from
+EMPLOYEE E 
+JOIN DEPARTMENT D on E.
+
+#Wyświetl dla każdej nazwy departamentu liczbę jego pracowników.
+
+SELECT d.DEPARTMENT_NAME AS nazwa_departamentu,
+COUNT(e.EMPLOYEE_NAME) AS liczba_pracownikow
+FROM DEPARTMENT d
+LEFT JOIN EMPLOYEE e
+ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+GROUP BY d.DEPARTMENT_NAME;
+
+#Wyświetl dla każdej nazwy departamentu imiona oraz nazwiska pracowników, którzy w nim pracują (łącznie).
+
+SELECT 
+d.DEPARTMENT_NAME AS nazwa_departamentu,
+e.FIRST_NAME AS imie,
+e.LAST_NAME AS nazwisko
+FROM DEPARTMENT d
+JOIN EMPLOYEE e
+ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+ORDER BY d.DEPARTMENT_NAME, e.LAST_NAME, e.FIRST_NAME;
+
+#z użyciem group_concat()
+SELECT 
+D.DEPARTMENT_NAME,
+GROUP_CONCAT(CONCAT(E.FIRST_NAME, ' ', E.LAST_NAME) SEPARATOR ', ') 
+AS pracownicy
+FROM EMPLOYEE E, DEPARTMENT D
+WHERE E.DEPARTMENT_ID = D.DEPARTMENT_ID
+GROUP BY D.DEPARTMENT_NAME;
+
+#zadanie 4
+#Wyświetl nazwiska pracowników, którzy urodzili się w latach 90-tych XX wieku, oraz nazwy stanowisk, na których są zatrudnieni (użyj NATURAL JOIN, jeśli to możliwe).
+
+SELECT 
+LAST_NAME, JOB_POSITION_ID
+FROM EMPLOYEE
+NATURAL JOIN JOB_POSITION
+WHERE BIRTH_DATE BETWEEN '1990-01-01' AND '1999-12-31';
+
+#Wyświetl imiona i nazwiska 5 najmłodszych pracowników, którzy pracują jako „Magazynier”.
+
+SELECT
+FIRST_NAME, LAST_NAME, BIRTH_DATE
+FROM EMPLOYEE
+JOIN JOB_POSITION
+ON EMPLOYEE.JOB_POSITION_ID = JOB_POSITION.JOB_POSITION_ID
+WHERE POSITION_NAME = 'Magazynier'
+ORDER BY BIRTH_DATE DESC
+LIMIT 5; 
+
+#Wypisz obok siebie skrócone nazwy klientów, których numer CLIENT_ID różni się o 5 (np. Kowalski - AutoMax, Nowak - Kaczmarek).
+
+SELECT 
+c1.SHORT_NAME AS klient_1,
+c2.SHORT_NAME AS klient_2
+FROM CLIENT c1
+JOIN CLIENT c2
+ON c1.CLIENT_ID = c2.CLIENT_ID + 5
+ORDER BY c1.CLIENT_ID;
+
+#Zadanie 5
+#Dla każdego stanowiska pracy wyświetl średnie zarobki pracowników, jeśli pracownik nie pracuje w departamencie „IT” ani „HR” i liczba pracowników jest powyżej 3.
+
+SELECT * FROM EMPLOYEE
+JOIN JOB_POSITION j
+JOIN DEPARTMENT d
+WHERE d.DEPARTMENT_NAME NOT IN ('IT', 'HR')
+
+#Dla każdego stanowiska pracownika wyświetl: imię, nazwisko, datę urodzenia najmłodszej i najstarszej osoby, oraz departament, w którym pracują.
