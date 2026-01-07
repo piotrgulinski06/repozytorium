@@ -1,0 +1,62 @@
+#SQL. Funkcje okienkowe
+#Zadanie 1
+#Stwórz ranking pracowników oparty na wysokości pensji (pensja). Jeśli dwie osoby mają tę samą pensję, mają ten sam numer rankingu (użyj funkcji RANK()).
+
+SELECT 
+e.EMPLOYEE_NAME, 
+e.FIRST_NAME, 
+e.LAST_NAME,
+e.PENSJA,
+rank() over(order by pensja desc) as ranking
+from EMPLOYEE e;
+
+#lub 
+
+SELECT 
+e.EMPLOYEE_NAME, 
+e.FIRST_NAME, 
+e.LAST_NAME,
+e.PENSJA,
+row_number() over(partition by e.FIRST_NAME order by pensja desc) as ranking
+from EMPLOYEE e;
+
+#Zadanie 2
+#Dodaj kolumnę pokazującą całkowitą sumę pensji wszystkich pracowników bez grupowania (funkcja SUM() OVER ()).
+
+SELECT
+e.FIRST_NAME,
+e.LAST_NAME,
+e.PENSJA,
+SUM(e.PENSJA) OVER () AS suma_pensji
+FROM EMPLOYEE e;
+
+#Zadanie 3
+#Dla każdego pracownika wyświetl: nazwisko, nazwę produktu, skumulowaną wartość sprzedaży (cena * ilość) dla pracownika (użyj SUM() OVER PARTITION BY EMPLOYEE_ID), ranking wartości sprzedaży względem wszystkich zamówień (RANK() OVER ORDER BY).
+
+SELECT
+e.LAST_NAME,
+p.PRODUCT_NAME,
+op.AMOUNT,
+op.SELL_PRICE,
+(op.SELL_PRICE * op.AMOUNT) AS wartosc_pozycji,
+RANK() OVER (ORDER BY (op.SELL_PRICE * op.AMOUNT) DESC) AS ranking
+FROM EMPLOYEE e
+JOIN `ORDER` o ON e.EMPLOYEE_NAME = o.EMPLOYEE_ID
+JOIN ORDER_POSITION op ON o.ORDER_ID = op.ORDER_ID
+JOIN PRODUCT p ON p.PRODUCT_ID = op.PRODUCT_ID;
+
+#Zadanie 4
+#Dla każdego wiersza w tabeli ORDER_POSITION wypisz nazwisko pracownika, nazwę produktu, cenę produktu, liczbę transakcji tego produktu w danym dniu, sumę zapłaconą danego dnia za produkt, poprzednią i następną cenę danego produktu (użyj funkcji LAG i LEAD).
+
+SELECT
+e.LAST_NAME,
+p.PRODUCT_NAME,
+op.SELL_PRICE,
+count(*) over (partition by op.PRODUCT_ID) AS liczba_transakcji,
+sum(op.AMOUNT * op.SELL_PRICE) over (partition by o.ORDER_DATE) as suma_z_dnia,
+LAG(op.SELL_PRICE) over(partition by op.PRODUCT_ID) as poprzednia_cena,
+LEAD(op.SELL_PRICE) over(partition by op.PRODUCT_ID) as nastepna_cena
+FROM EMPLOYEE e
+JOIN `ORDER` o ON e.EMPLOYEE_NAME = o.EMPLOYEE_ID
+JOIN ORDER_POSITION op ON o.ORDER_ID = op.ORDER_ID
+JOIN PRODUCT p ON p.PRODUCT_ID = op.PRODUCT_ID;
