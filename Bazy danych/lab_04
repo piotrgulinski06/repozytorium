@@ -1,0 +1,105 @@
+SQL. Praca z kluczami głównymi i obcymi
+
+Zadanie 1
+Usuń klucze obce, które wskazują na pracownik.id_pracownika (w tabelach zadanie i projekt).
+
+ALTER TABLE zadanie
+DROP FOREIGN KEY fk_pracownik;
+
+ALTER TABLE projekt
+DROP FOREIGN KEY fk_menadzer_projektu;
+
+Usuń klucz główny z tabeli pracownik.
+
+ALTER TABLE pracownik
+DROP PRIMARY KEY;
+
+Dodaj ponownie klucz główny na kolumnie id_pracownika.
+
+ALTER TABLE pracownik
+ADD PRIMARY KEY (id_pracownika);
+
+Odtwórz usunięte wcześniej klucze obce:
+ON DELETE SET NULL w tabeli zadanie,
+bez kaskadowego usuwania w tabeli projekt.
+
+ALTER TABLE zadanie
+ADD CONSTRAINT fk_pracownik
+    FOREIGN KEY (pracownik) REFERENCES pracownik(id_pracownika)
+    ON DELETE SET NULL;
+
+ALTER TABLE projekt
+ADD CONSTRAINT fk_menadzer_projektu
+    FOREIGN KEY (menadzer_projektu) REFERENCES pracownik(id_pracownika);
+
+Zadanie 2
+Dodaj do tabeli zadanie nową kolumnę godziny_szacowane INTEGER z domyślną wartością 8.
+
+ALTER TABLE zadanie
+ADD COLUMN godziny_szacowane INT DEFAULT 8;
+
+Ustaw różne wartości godziny_szacowane dla istniejących zadań (np. 4, 12, 16).
+
+UPDATE zadanie SET godziny_szacowane = 4 WHERE id_zadania = 1;
+UPDATE zadanie SET godziny_szacowane = 12 WHERE id_zadania = 2;
+UPDATE zadanie SET godziny_szacowane = 16 WHERE id_zadania = 3;
+
+Zmień domyślną wartość kolumny godziny_szacowane z 8 na 6.
+
+ALTER TABLE zadanie
+ALTER COLUMN godziny_szacowane SET DEFAULT 6;
+
+Wstaw nowe zadanie (dowolne dane) i pokaż, że bez podania godziny_szacowane przyjmuje teraz wartość 6, następnie usuń to zadanie.
+
+INSERT INTO zadanie (nazwa_zadania, priorytet, opis, pracownik, projekt, sprint)
+VALUES ('Test default hours', 'normalny', NULL, NULL, NULL, NULL);
+
+SELECT * FROM zadanie WHERE nazwa_zadania = 'Test default hours';
+
+DELETE FROM zadanie
+WHERE nazwa_zadania = 'Test default hours';
+
+Zadanie 3
+Dodaj do projekt kolumnę opis_projektu – ciąg znaków, max. 50 znaków (może być NULL).
+
+ALTER TABLE projekt
+ADD COLUMN opis_projektu VARCHAR(50) NULL;
+
+Zmień typ tej kolumny na ciąg znaków, max. 200 znaków (rozszerzenie długości).
+
+ALTER TABLE projekt
+MODIFY opis_projektu VARCHAR(200) NULL;
+
+Zaktualizuj kilka projektów, ustawiając w opis_projektu krótkie opisy (np. „MVP”, „pilne wdrożenie”).
+
+UPDATE projekt SET opis_projektu = 'MVP' WHERE id_projektu = 1;
+UPDATE projekt SET opis_projektu = 'pilne wdrożenie' WHERE id_projektu = 2;
+
+Usuń kolumnę opis_projektu z tabeli projekt.
+
+ALTER TABLE projekt
+DROP COLUMN opis_projektu;
+
+Zadanie 4
+Usuń klucz obcy zadanie.projekt wskazujący na projekt.id_projektu.
+
+ALTER TABLE zadanie
+DROP FOREIGN KEY fk_zadanie_projekt;
+
+Dodaj ponownie klucz obcy zadanie.projekt → projekt(id_projektu) z opcją ON DELETE SET NULL.
+
+ALTER TABLE zadanie
+ADD CONSTRAINT fk_zadanie_projekt
+    FOREIGN KEY (projekt) REFERENCES projekt(id_projektu)
+    ON DELETE SET NULL;
+
+Usuń jeden wybrany projekt z tabeli projekt.
+
+DELETE FROM projekt
+WHERE id_projektu = 2;
+
+Sprawdź (np. za pomocą SELECT), że zadania, które należały do usuniętego projektu, mają teraz w kolumnie projekt wartość NULL.
+
+SELECT * FROM zadanie
+
+WHERE projekt IS NULL;
