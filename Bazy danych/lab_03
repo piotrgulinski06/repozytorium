@@ -1,0 +1,190 @@
+SQL. Tworzenie, aktualizacja oraz usuwanie tabel. Wstawianie, aktualizacja i usuwanie danych z tabeli
+
+Zadanie 1
+Stwórz tabelę o nazwie pracownik i dodaj pola (kolumny) według wytycznych:
+id_pracownika - klucz główny, liczba samozwiększająca się,
+imie - ciąg znaków, pole wymagane, maksymalnie 40 znaków,
+nazwisko - ciąg znaków, pole wymagane, maksymalnie 60 znaków,
+data_urodzenia - typ daty, pole wymagane
+
+CREATE TABLE pracownik (
+    id_pracownika INT AUTO_INCREMENT PRIMARY KEY,
+    imie VARCHAR(40) NOT NULL,
+    nazwisko VARCHAR(60) NOT NULL,
+    data_urodzenia DATE NOT NULL
+);
+
+
+Do tabeli pracownik wstaw 3 rekordy danych.
+
+INSERT INTO pracownik (imie, nazwisko, data_urodzenia)
+VALUES
+('Imie1', 'Nazwisko1', '1985-03-10'),
+('Imie2', 'Nazwisko2', '1992-07-21'),
+('Imie3', 'Nazwisko3', '1978-11-05');
+
+
+Zmodyfikuj wartość w kolumnie data_urodzenia dla dowolnego rekordu.
+
+UPDATE pracownik
+SET data_urodzenia = '1986-01-15'
+WHERE id_pracownika = 1;
+
+Zadanie 2
+Stwórz tabelę zadanie z poniższymi polami:
+id_zadania - klucz główny, liczba samozwiększająca się,
+nazwa_zadania - ciąg znaków, pole wymagane, długość max. 150 znaków,
+priorytet - typ wyliczeniowy (normalny, wysoki, niski),
+opis - długi tekst, pole opcjonalne,
+pracownik - klucz obcy do tabeli pracownik, w razie usunięcia wstaw null.
+
+CREATE TABLE zadanie (
+    id_zadania INT AUTO_INCREMENT PRIMARY KEY,
+    nazwa_zadania VARCHAR(150) NOT NULL,
+    priorytet ENUM('normalny', 'wysoki', 'niski'),
+    opis TEXT,
+    pracownik INT,
+    CONSTRAINT fk_pracownik
+        FOREIGN KEY (pracownik) REFERENCES pracownik(id_pracownika)
+        ON DELETE SET NULL
+);
+
+Zmodyfikuj pole priorytet i ustaw wartość domyślną na normalny.
+
+ALTER TABLE zadanie
+    MODIFY priorytet ENUM('normalny', 'wysoki', 'niski') DEFAULT 'normalny';
+
+Dodaj po jednym zadaniu dla każdego pracownika.
+
+
+INSERT INTO zadanie (nazwa_zadania, priorytet, opis, pracownik)
+VALUES
+('zadanie1', 'normalny', 'opis1', 1),
+('zadanie2', 'wysoki', 'opis2', 2),
+('zadanie3', 'niski', NULL, 3);
+
+Zadanie 3
+Stwórz tabelę projekt z polami:
+id_projektu - klucz glówny, liczba samozwiększająca się,
+nazwa_projektu - ciąg znaków, max. 150 znaków,
+data_rozpoczecia - typ daty,
+data_zakonczenia - typ daty, może być pusty.
+Za pomocą oddzielnego polecenia dodaj do tabeli projekt pole menadzer_projektu - klucz obcy do tabeli pracownik.
+
+CREATE TABLE projekt (
+    id_projektu INT AUTO_INCREMENT PRIMARY KEY,
+    nazwa_projektu VARCHAR(150),
+    data_rozpoczecia DATE,
+    data_zakonczenia DATE NULL
+);
+
+ALTER TABLE projekt
+ADD COLUMN menadzer_projektu INT,
+ADD CONSTRAINT fk_menadzer_projektu
+    FOREIGN KEY (menadzer_projektu) REFERENCES pracownik(id_pracownika);
+
+Dodaj 2 rekordy do tabeli projekt.
+
+INSERT INTO projekt (nazwa_projektu, data_rozpoczecia, data_zakonczenia, menadzer_projektu)
+VALUES
+('System raportowy', '2024-01-10', '2024-06-30', 1),
+('Modernizacja infrastruktury', '2024-02-15', NULL, 2);
+
+Dodaj do tabeli zadanie kolumnę projekt, klucz obcy do tabeli projekt, kaskadowe usuwanie rekordów.
+
+ALTER TABLE zadanie
+ADD COLUMN projekt INT,
+ADD CONSTRAINT fk_zadanie_projekt
+    FOREIGN KEY (projekt) REFERENCES projekt(id_projektu)
+    ON DELETE CASCADE;
+
+Zaktualizuj wartości w tabeli zadanie dodając brakujące identyfikatory projektu, do którego należy je przypisać.
+
+UPDATE zadanie
+SET projekt = 1
+WHERE id_zadania IN (1, 2);
+
+UPDATE zadanie
+SET projekt = 2
+WHERE id_zadania = 3;
+
+Zadanie 4
+Stwórz tabelę sprint z polami:
+id_sprintu - klucz główny, liczba samozwiększająca się,
+numer_sprintu - liczba całkowita nieujemna,
+data_rozpoczecia - typ daty,
+data_zakonczenia - typ daty.
+Zmodyfikuj tabelę zadanie i dodaj kolumnę sprint, która będzie kluczem obcym do tabeli sprint, można wstawiać w niej wartość null (pole opcjonalne). Wstawiaj null w razie usunięcia rekordu nadrzędnego.
+
+CREATE TABLE sprint (
+    id_sprintu INT AUTO_INCREMENT PRIMARY KEY,
+    numer_sprintu INT UNSIGNED,
+    data_rozpoczecia DATE,
+    data_zakonczenia DATE
+);
+
+ALTER TABLE zadanie
+ADD COLUMN sprint INT NULL,
+ADD CONSTRAINT fk_zadanie_sprint
+    FOREIGN KEY (sprint) REFERENCES sprint(id_sprintu)
+    ON DELETE SET NULL;
+
+Dodaj 1 sprint i przydziel do niego 2 zadania.
+
+INSERT INTO sprint (numer_sprintu, data_rozpoczecia, data_zakonczenia)
+VALUES
+(1, '2024-03-01', '2024-03-15');
+
+UPDATE zadanie
+SET sprint = 1
+WHERE id_zadania IN (1, 2);
+
+Zadanie 5
+Stwórz tabelę status z polami:
+id_statusu - klucz główny, liczba samozwiększająca się,
+nazwa_statusu - ciąg znaków, max. 20 znaków.
+Dodaj 3 różne statusy do tabeli status.
+
+CREATE TABLE status (
+    id_statusu INT AUTO_INCREMENT PRIMARY KEY,
+    nazwa_statusu VARCHAR(20)
+);
+
+INSERT INTO status (nazwa_statusu)
+VALUES
+('Nowe'),
+('W trakcie'),
+('Zakończone');
+
+Stwórz tabelę zadanie_has_status z polami:
+id_zdarzenia - klucz główny, liczba samozwiększająca się,
+id_zadania - klucz obcy do tabeli zadanie,
+id_statusu - klucz obcy do tabeli status,
+data_zdarzenia - typ daty i czasu, domyślnie CURRENT_TIMESTAMP.
+
+CREATE TABLE zadanie_has_status (
+    id_zdarzenia INT AUTO_INCREMENT PRIMARY KEY,
+    id_zadania INT,
+    id_statusu INT,
+    data_zdarzenia DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_zhs_zadanie
+        FOREIGN KEY (id_zadania) REFERENCES zadanie(id_zadania)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_zhs_status
+        FOREIGN KEY (id_statusu) REFERENCES status(id_statusu)
+);
+
+Wstaw 3 rekordy do tabeli zadanie_has_status.
+
+INSERT INTO zadanie_has_status (id_zadania, id_statusu)
+VALUES
+(1, 1),
+(2, 2),
+(3, 3);
+
+Usuń z tabeli projekt jeden projekt i sprawdź czy powiązane rekordy w tabeli zadanie również zostały usunięte.
+
+DELETE FROM projekt
+WHERE id_projektu = 1;
+
+SELECT * FROM zadanie;
