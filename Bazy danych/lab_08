@@ -1,0 +1,184 @@
+SQL. Funkcje tekstowe, daty i czasu MySQL
+#Zadanie 1
+#Pełna nazwa klienta, nazwa ulicy, długość i pierwsze 5 liter ulicy.
+SELECT
+c.FULL_NAME,
+ca.STREET,
+LENGTH(ca.STREET) AS street_length,
+SUBSTR(ca.STREET, 5, 5) as street_first5
+FROM company_2025.CLIENT c
+JOIN company_2025.CLIENT_ADDRESS ca
+ON ca.CLIENT_ID = c.CLIENT_ID;
+
+#Skrócona nazwa klienta i nazwa typu adresu (z uwzględnieniem klientów bez przypisanego typu adresu).
+SELECT
+c.SHORT_NAME,
+ca.ADDRESS_TYPE
+FROM company_2025.CLIENT c
+LEFT JOIN company_2025.CLIENT_ADDRESS ca
+ON ca.CLIENT_ID = c.CLIENT_ID;
+
+
+#Nazwa produktu, nazwa kategorii, pierwsze trzy znaki nazwy produktu.
+SELECT
+p.PRODUCT_NAME,
+c.CATEGORY_NAME,
+SUBSTR(p.PRODUCT_NAME, 1, 3) AS product_first3
+FROM company_2025.PRODUCT p
+JOIN company_2025.CATEGORY c
+ON c.CATEGORY_ID = p.CATEGORY_ID;
+
+#Nazwy produktów i opisy tych, które zostały sprzedane.
+SELECT DISTINCT
+p.PRODUCT_NAME,
+p.DESCRIPTION
+FROM company_2025.PRODUCT p
+JOIN company_2025.ORDER_POSITION op
+ON op.PRODUCT_ID = p.PRODUCT_ID;
+    
+#Zadanie 2
+#Nazwa klienta, numer i data zamówienia oraz dni które upłynęły od daty zamówienia.
+SELECT
+c.FULL_NAME,
+o.ORDER_NUMBER,
+o.ORDER_DATE,
+DATEDIFF(CURDATE(), o.ORDER_DATE) AS dni_od_zamowienia
+FROM company_2025.`ORDER` o
+JOIN company_2025.CLIENT c
+ON c.CLIENT_ID = o.CLIENT_ID;
+
+#Dla wszystkich zamówień które nie mają statusu Zwrocone albo Zamkniete. Oblicz i wyświetl termin płatności który wynosi 14 dni od daty zamówienia.
+
+SELECT
+o.ORDER_ID,
+o.ORDER_DATE,
+DATE_ADD(o.ORDER_DATE, INTERVAL 14 DAY) AS due_date
+FROM company_2025.`ORDER` o
+JOIN company_2025.ORDER_STATUS s
+ON s.STATUS_ID = o.ORDER_STATUS
+WHERE s.STATUS_NAME NOT IN ('Zwrocone', 'Zamkniete');
+
+#Imię, nazwisko, data zatrudnienia, dzień tygodnia i nazwa działu (również pracownicy bez działu).
+
+SELECT
+e.FIRST_NAME,
+e.LAST_NAME,
+e.DATE_OF_EMPLOYMENT,
+DAYNAME(e.DATE_OF_EMPLOYMENT) AS dzien_tygodnia,
+d.DEPARTMENT_NAME
+FROM company_2025.EMPLOYEE e
+LEFT JOIN company_2025.DEPARTMENT d
+ON d.DEPARTMENT_ID = e.DEPARTMENT_ID;
+    
+#Różnica dni pomiędzy najwcześniejszym, a najpóźniejszym zamówieniem klienta, także dla klientów bez zamówień.
+
+SELECT
+c.FULL_NAME,
+DATEDIFF(MAX(o.ORDER_DATE), MIN(o.ORDER_DATE)) AS dni_pomiedzy
+FROM company_2025.CLIENT c
+LEFT JOIN company_2025.`ORDER` o
+ON o.CLIENT_ID = c.CLIENT_ID
+GROUP BY c.CLIENT_ID, c.FULL_NAME;
+
+#Zadanie 3
+#Skrócona nazwa klienta oraz lista adresów oddzielona przecinkami.
+
+SELECT
+c.SHORT_NAME,
+GROUP_CONCAT(
+CONCAT(ca.STREET, ', ', ca.POSTAL_CODE, ' ', ca.CITY)
+ORDER BY ca.CITY, ca.POSTAL_CODE, ca.STREET
+SEPARATOR ', '
+) AS addresses
+FROM company_2025.CLIENT c
+LEFT JOIN company_2025.CLIENT_ADDRESS ca
+ON ca.CLIENT_ID = c.CLIENT_ID
+GROUP BY c.CLIENT_ID, c.SHORT_NAME;
+
+#Miasta i unikalne dwuznakowe prefixy kodów pocztowych (pierwsze 2 znaki) po przecinku w jednej kolumnie.
+
+SELECT
+CITY,
+GROUP_CONCAT(
+DISTINCT SUBSTR(POSTAL_CODE, 1, 2)
+ORDER BY SUBSTR(POSTAL_CODE, 1, 2)
+SEPARATOR ', '
+) AS postal_prefixes
+FROM company_2025.CLIENT_ADDRESS
+GROUP BY CITY;
+
+#Wyświetl dla każdego pracownika połączone nazwisko i imię dodatkowo dział oraz liczbę dnia od zatrudnienia.
+
+SELECT
+CONCAT(e.LAST_NAME, ' ', e.FIRST_NAME) AS pracownik,
+d.DEPARTMENT_NAME,
+DATEDIFF(CURDATE(), e.DATE_OF_EMPLOYMENT) AS dni_od_zatrudnienia
+FROM company_2025.EMPLOYEE e
+LEFT JOIN company_2025.DEPARTMENT d
+ON d.DEPARTMENT_ID = e.DEPARTMENT_ID;
+
+#Dla każdego klienta wyświetl dwie kolumny:
+#Pierwsza kolumna zawiera pełną nazwę klienta oraz nazwę skróconą po myślniku (np. "Food Market SA' - FoodMarket"),
+#Druga kolumna zawiera listę trzech ostatnich cyfr wszystkich numerów zamówień, które złożył klient, oddzielonych przecinkami, w formacie (np. "003, 005, 123").
+
+SELECT
+CONCAT(c.FULL_NAME, ' - ', c.SHORT_NAME) AS klient,
+GROUP_CONCAT(
+RIGHT(o.ORDER_NUMBER, 3)
+ORDER BY o.ORDER_DATE
+SEPARATOR ', '
+) AS last3_order_numbers
+FROM company_2025.CLIENT c
+LEFT JOIN company_2025.`ORDER` o
+ON o.CLIENT_ID = c.CLIENT_ID
+GROUP BY c.CLIENT_ID, c.FULL_NAME, c.SHORT_NAME;
+
+#Dla każdego pracownika stwórz i wyświetl hasło, które będzie składać się z
+#pierwszych 3 liter imienia (małymi literami),
+#a następnie ostatnich 4 znaków nazwiska (wielkimi literami),
+#a na koniec suma długości imienia i nazwy jego ulicy (liczba znaków).
+#Hasło powinno wyglądać np. tak  abcWXYZ7, gdzie abc to trzy pierwsze litery imienia małymi literami, WXYZ to ostatnie cztery litery nazwiska wielkimi literami, a 7 to suma długości imienia i nazwy jego ulicy.
+
+SELECT
+e.FIRST_NAME,
+e.LAST_NAME,
+CONCAT(
+LOWER(LEFT(e.FIRST_NAME, 3)),
+UPPER(RIGHT(e.LAST_NAME, 4)),
+(
+LENGTH(e.FIRST_NAME)
++ LENGTH(YEAR(e.BIRTH_DATE))
++ LENGTH(MONTH(e.BIRTH_DATE))
++ LENGTH(DAY(e.BIRTH_DATE))
+)
+) AS haslo
+FROM company_2025.EMPLOYEE e;
+
+#Zadanie 4
+#Wykorzystując funkcję DATE_FORMAT (dokumentacja) wyświetl datę sprzedaży zamówienia w postaci:
+#dzień-miesiąc-rok,
+#rok - tydzień roku,
+#rok - dzień roku,
+#angielska nazwa miesiąca/dzień/rok.
+
+SELECT
+o.ORDER_ID,
+o.ORDER_DATE,
+DATE_FORMAT(o.ORDER_DATE, '%d-%m-%Y') AS dzien_miesiac_rok,
+DATE_FORMAT(o.ORDER_DATE, '%x-%v')    AS rok_tydzien_roku,
+DATE_FORMAT(o.ORDER_DATE, '%Y-%j')    AS rok_dzien_roku,
+DATE_FORMAT(o.ORDER_DATE, '%M/%d/%Y') AS month_name_day_year_en
+FROM company_2025.`ORDER` o;
+
+#Przygotuj zapytanie SQL, które odpowie na pytanie: W którym tygodniu 2025 roku złożono zamówienia o największej łącznej wartości?
+
+SELECT
+DATE_FORMAT(o.ORDER_DATE, '%x-%v') AS rok_tydzien,
+SUM(op.AMOUNT * op.SELL_PRICE) AS laczna_wartosc
+FROM company_2025.`ORDER` o
+JOIN company_2025.ORDER_POSITION op
+ON op.ORDER_ID = o.ORDER_ID
+WHERE YEAR(o.ORDER_DATE) = 2025
+GROUP BY DATE_FORMAT(o.ORDER_DATE, '%x-%v')
+ORDER BY laczna_wartosc DESC
+LIMIT 1;
