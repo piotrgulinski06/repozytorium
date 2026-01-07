@@ -1,0 +1,62 @@
+#SQL. Zapytania SELECT – filtrowanie, sortowanie
+#Zadanie 1
+create table `ORDER` LIKE company_2025.ORDER;
+INSERT INTO `ORDER` SELECT * from company_2025.ORDER;
+
+CREATE TABLE CLIENT AS 
+select * from company_2025.CLIENT;
+
+CREATE TABLE EMPLOYEE AS 
+select * from company_2025.EMPLOYEE;
+
+select * from `ORDER`
+
+select * from `ORDER` where ORDER_STATUS IN (5);
+
+SELECT ORDER_ID, ORDER_STATUS
+FROM `ORDER`
+WHERE CLIENT_ID IN (1, 3, 5);
+
+#Zadanie 2
+select * from EMPLOYEE where FIRST_NAME like 'Agnieszka' and pensja = 3900
+
+select * from EMPLOYEE WHERE pensja > 5000 and pensja < 7000
+#between działa w trybie inclusive (wyłączając wartości brzegowe
+select * from EMPLOYEE WHERE pensja between 5000 and 7000
+
+SELECT * FROM company_2025.CLIENT
+where SHORT_NAME LIKE '%eco%';
+# % - dowolny ciąg znaków
+# _ - dokładnie jeden znak	
+
+select month(curdate());
+... WHERE month(data) = 7;	
+... WHERE month(data) IN (7,8);
+
+#Zadanie 3
+Select * from `ORDER`
+where `ORDER_DATE` = 8;
+
+Show create table `ORDER`
+
+select * from company_2025.EMPLOYEE
+order by BIRTH_DATE LIMIT 10,10;
+
+#Zadanie 4 
+# pkt 1 - distinct lub distinct()
+select distinct first_name from company_2025.EMPLOYEE
+select distinct (first_name) from company_2025.EMPLOYEE
+#pkt 2 - concat()
+select concat(first_name, ' - ', last_name) 
+as 'imie i nazwisko' from company_2025.EMPLOYEE;
+#pkt 3 -
+#where date_of_employment between '2010-01-01' and ...
+#where year(date_of_employment) between 2010 and 2014
+#zadanie 5
+Select * from CLIENT
+where TAX_IDENTIFIER is NULL;
+SHOW CREATE TABLE CLIENT
+
+SELECT * FROM company_2025.CLIENT
+where SHORT_NAME LIKE 'K%' OR SHORT_NAME LIKE '%ski'
+ORDER BY SHORT_NAME DESC;
