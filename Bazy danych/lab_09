@@ -60,3 +60,20 @@ FROM EMPLOYEE e
 JOIN `ORDER` o ON e.EMPLOYEE_NAME = o.EMPLOYEE_ID
 JOIN ORDER_POSITION op ON o.ORDER_ID = op.ORDER_ID
 JOIN PRODUCT p ON p.PRODUCT_ID = op.PRODUCT_ID;
+
+#Zadanie 5
+#Dla każdego wiersza wypisz nazwę produktu, cenę, sumę całkowitą zapłaconą w danym miesiącu oraz sumę rosnącą zapłaconą w danym miesiącu (użyj SUM() i SUM() OVER PARTITION BY MONTH(ORDER_DATE)).
+
+SELECT
+p.PRODUCT_NAME,
+op.SELL_PRICE,
+o.ORDER_DATE,
+SUM(op.AMOUNT * op.SELL_PRICE) OVER 
+(PARTITION BY YEAR(o.ORDER_DATE), MONTH(o.ORDER_DATE)) AS suma_w_miesiacu,
+SUM(op.AMOUNT * op.SELL_PRICE) OVER 
+(PARTITION BY YEAR(o.ORDER_DATE), MONTH(o.ORDER_DATE) ORDER BY o.ORDER_DATE) AS suma_rosnaca_w_miesiacu
+FROM `ORDER` o
+JOIN ORDER_POSITION op
+ON o.ORDER_ID = op.ORDER_ID
+JOIN PRODUCT p
+ON p.PRODUCT_ID = op.PRODUCT_ID;
