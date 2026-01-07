@@ -1,0 +1,184 @@
+#SQL. Złączanie tabel, podzapytania oraz wybrane funkcje wbudowane MySQL
+#Zadanie 1
+#Wyświetl dane klientów, którzy nie złożyli żadnego zamówienia. Wykonaj zadanie na dwa sposoby - patrz podpowiedź.
+
+SELECT c.*
+FROM company_2025.CLIENT c
+LEFT JOIN company_2025.`ORDER` o
+ON o.CLIENT_ID = c.CLIENT_ID
+WHERE o.CLIENT_ID IS NULL;
+
+SELECT *
+FROM company_2025.CLIENT
+WHERE CLIENT_ID NOT IN (
+SELECT DISTINCT CLIENT_ID
+FROM company_2025.`ORDER`);
+
+#Wyświetl nazwy jednostek miary (UNIT_NAME), które nie zostały wykorzystane w tabeli INVENTORY. Wykorzystaj do tego celu RIGHT JOIN.
+
+SELECT u.UNIT_NAME
+FROM company_2025.INVENTORY i
+RIGHT JOIN company_2025.UNIT_OF_MEASUREMENT u
+ON u.UNIT_ID = i.UNIT_ID
+WHERE i.UNIT_ID IS NULL;
+
+#Wylicz średnią różnicę między ceną zakupu a ceną sprzedaży każdego sprzedanego produktu i wyświetl nazwy tych produktów oraz tę wyliczoną różnicę. Dane posortuj po różnicy malejąco.
+
+SELECT
+p.PRODUCT_NAME,
+AVG(op.SELL_PRICE - p.PURCHASE_PRICE) AS avg_price_diff
+FROM company_2025.ORDER_POSITION op
+JOIN company_2025.PRODUCT p
+ON p.PRODUCT_ID = op.PRODUCT_ID
+GROUP BY p.PRODUCT_ID, p.PRODUCT_NAME
+ORDER BY avg_price_diff DESC;
+
+#Zadanie 2
+#Wyświetl unikalną listę nazw departamentów, w których pracują pracownicy, którzy wystawili zamówienia.
+
+SELECT DISTINCT d.DEPARTMENT_NAME
+FROM company_2025.DEPARTMENT d
+JOIN company_2025.EMPLOYEE e
+ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+JOIN company_2025.`ORDER` o
+ON o.EMPLOYEE_ID = e.EMPLOYEE_NAME;
+    
+#Zsumuj wartość zamówień dla każdego departamentu. Wyświetlaj dane w postaci nazwy departamentu oraz łącznej wartości zamówień.
+
+SELECT
+d.DEPARTMENT_NAME,
+SUM(op.AMOUNT * op.SELL_PRICE) AS total_order_value
+FROM company_2025.DEPARTMENT d
+JOIN company_2025.EMPLOYEE e
+ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+JOIN company_2025.`ORDER` o
+ON o.EMPLOYEE_ID = e.EMPLOYEE_NAME
+JOIN company_2025.ORDER_POSITION op
+ON op.ORDER_ID = o.ORDER_ID
+GROUP BY d.DEPARTMENT_NAME;
+
+#Do zadania numer 2 (jako drugą kolumnę) dodaj jeszcze podsumę dla każdego statusu (wyświetlaj jego nazwę, a nie identyfikator).
+
+ELECT
+d.DEPARTMENT_NAME,
+s.STATUS_NAME,
+SUM(op.AMOUNT * op.SELL_PRICE) AS total_order_value
+FROM company_2025.DEPARTMENT d
+JOIN company_2025.EMPLOYEE e
+ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+JOIN company_2025.`ORDER` o
+ON o.EMPLOYEE_ID = e.EMPLOYEE_NAME
+JOIN company_2025.ORDER_POSITION op
+ON op.ORDER_ID = o.ORDER_ID
+JOIN company_2025.ORDER_STATUS s
+ON s.STATUS_ID = o.ORDER_STATUS
+GROUP BY d.DEPARTMENT_NAME, s.STATUS_NAME
+ORDER BY d.DEPARTMENT_NAME, s.STATUS_NAME;
+
+#Zadanie 3
+#Wykorzystując wbudowaną funkcję CONCAT wyświetl pełne nazwy produktów w formacie: Nazwa produktu (Opis produktu). Patrz przykładowe wyniki poniżej.
+
+SELECT
+CONCAT(PRODUCT_NAME, ' (', DESCRIPTION, ')') AS full_product_name
+FROM company_2025.PRODUCT;
+
+#Wykorzystując wbudowaną funkcję CONCAT_WS wyświetl wszystkie kolumny z tabeli PRODUCT oddzielając wartości przecinkiem.
+
+SELECT
+CONCAT_WS(', ',
+PRODUCT_ID,
+CATEGORY_ID,
+PRODUCT_NAME,
+PURCHASE_PRICE,
+DESCRIPTION) AS product_row
+FROM company_2025.PRODUCT;
+
+#Wykorzystując wbudowaną funkcję CONCAT oraz GROUP_CONCAT wyświetl dla każdego działu listę pracowników (imię i nazwisko) pracujących w danym dziale.
+
+SELECT
+d.DEPARTMENT_NAME,
+GROUP_CONCAT(
+CONCAT(e.FIRST_NAME, ' ', e.LAST_NAME)
+ORDER BY e.LAST_NAME, e.FIRST_NAME
+SEPARATOR ', '
+) AS employees
+FROM company_2025.DEPARTMENT d
+JOIN company_2025.EMPLOYEE e
+ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+GROUP BY d.DEPARTMENT_ID, d.DEPARTMENT_NAME;
+
+#Wykorzystując wbudowaną funkcję GROUP_CONCAT wyświetl nazwę kategorii, a w kolejnej kolumnie listę nazw produktów z tej kategorii, które nigdy nie były sprzedane.
+
+SELECT
+c.CATEGORY_NAME,
+GROUP_CONCAT(
+p.PRODUCT_NAME
+ORDER BY p.PRODUCT_NAME
+SEPARATOR ', '
+) AS unsold_products
+FROM company_2025.CATEGORY c
+JOIN company_2025.PRODUCT p
+   ON p.CATEGORY_ID = c.CATEGORY_ID
+LEFT JOIN company_2025.ORDER_POSITION op
+ON op.PRODUCT_ID = p.PRODUCT_ID
+WHERE op.PRODUCT_ID IS NULL
+GROUP BY c.CATEGORY_ID, c.CATEGORY_NAME;
+
+#Zadanie 4
+#Wyświetl numer zamówienia oraz w kolejnej kolumnie tekst Zakończone, jeśli status zamówienia to 3,4,7 lub 10, w przeciwnym wypadku wyświetlaj tekst Inny.
+
+SELECT
+o.ORDER_NUMBER,
+IF(o.ORDER_STATUS IN (3,4,7,10), 'Zakończone', 'Inny') AS status_text
+FROM company_2025.`ORDER` o;
+
+#Wyświetl nazwę produktu, a w następnej kolumnie o nazwię dostepnosc wyświetl tekst w zależności od ilości dostępnej w magazynie (INVENTORY.AMOUNT):
+#Brak - jeśli ilość jest równa 0
+#Mała ilość - jeśli ilość jest większa niż 0, ale mniejsza niż 10
+#Średnia ilość - jeśli ilość jest większa niż 9, ale mniejsza lub równa 30
+#Duża ilość - jeśli ilość jest większa niż 30
+
+SELECT
+p.PRODUCT_NAME,
+CASE
+WHEN i.AMOUNT = 0 THEN 'Brak'
+WHEN i.AMOUNT > 0 AND i.AMOUNT < 10 THEN 'Mała ilość'
+WHEN i.AMOUNT > 9 AND i.AMOUNT <= 30 THEN 'Średnia ilość'
+ELSE 'Duża ilość'
+END AS dostepnosc
+FROM company_2025.PRODUCT p
+JOIN company_2025.INVENTORY i
+ON i.PRODUCT_ID = p.PRODUCT_ID;
+    
+#Wykorzystując funkcję IFNULL wyświetl wartość z kolumny TAX_IDENTIFIER z tabeli CLIENT jeżeli nie jest pusta lub tekst Klient indywidualny w przeciwnym wypadku.
+
+SELECT
+SHORT_NAME,
+IFNULL(TAX_IDENTIFIER, 'Klient indywidualny') AS tax_or_info
+FROM company_2025.CLIENT;
+
+#Zadanie 5
+#Wyświetl wartość z kolumny CITY, a następnie w kolejnej kolumnie 2 pierwsze znaki z kolumny POSTAL_CODE w tabeli CLIENT_ADDRESS.
+
+SELECT
+CITY,
+SUBSTR(POSTAL_CODE, 1, 2) AS postal_prefix
+FROM company_2025.CLIENT_ADDRESS;
+
+#inna metoda
+
+SELECT substr(STREET, position(' ' in STREET) + 1)
+from CLIENT_ADRESS;
+
+SELECT STREET,
+position(' ' in reverse(STREET)) from CLIENT_ADRESS;
+
+#Wykorzystując zapytanie z zadania 1, wyświetl nazwę miasta, a następnie w kolejnej kolumnie unikalne 2 pierwsze znaki z kodów dla tego miasta (patrz podpowiedź).
+
+SELECT
+CITY,
+GROUP_CONCAT(
+DISTINCT SUBSTR(POSTAL_CODE, 1, 2)	ORDER BY SUBSTR(POSTAL_CODE, 1, 2)
+SEPARATOR ', ') AS postal_prefixes
+FROM company_2025.CLIENT_ADDRESS
+GROUP BY CITY;
